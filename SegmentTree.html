@@ -1,0 +1,783 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>線段樹 (Segment Tree) 互動教學平台</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- D3.js for Tree Visualization -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
+    <!-- Highlight.js for Syntax Highlighting -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/styles/atom-one-dark.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/highlight.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/languages/cpp.min.js"></script>
+    <!-- KaTeX for Math expressions -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/contrib/auto-render.min.js"></script>
+
+    <style>
+        .node circle {
+            fill: #fff;
+            stroke: #3b82f6;
+            stroke-width: 3px;
+            transition: all 0.3s ease;
+        }
+        .node text {
+            font: 12px sans-serif;
+            font-weight: bold;
+        }
+        .node--highlight circle {
+            fill: #ef4444 !important;
+            stroke: #b91c1c !important;
+        }
+        .node--active circle {
+            fill: #10b981 !important;
+            stroke: #047857 !important;
+        }
+        .node--partial circle {
+            fill: #f59e0b !important;
+            stroke: #d97706 !important;
+        }
+        .link {
+            fill: none;
+            stroke: #cbd5e1;
+            stroke-width: 2px;
+            transition: all 0.3s ease;
+        }
+        .link--active {
+            stroke: #3b82f6;
+            stroke-width: 4px;
+        }
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f5f9;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 3px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 font-sans min-h-screen flex flex-col">
+
+    <!-- Header Navigation -->
+    <header class="bg-slate-900 text-white shadow-md sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center">
+            <div class="flex items-center space-x-3">
+                <i class="fa-solid fa-sitemap text-blue-400 text-2xl"></i>
+                <h1 class="text-xl font-bold tracking-wide">線段樹 (Segment Tree) 互動教學平台</h1>
+            </div>
+            <nav class="hidden md:flex space-x-6 text-sm font-medium">
+                <button onclick="scrollToSection('concept')" class="hover:text-blue-400 transition">觀念簡介</button>
+                <button onclick="scrollToSection('visualizer')" class="hover:text-blue-400 transition">樹狀視覺化</button>
+                <button onclick="scrollToSection('operations')" class="hover:text-blue-400 transition">操作示範與動畫</button>
+                <button onclick="scrollToSection('lazy')" class="hover:text-blue-400 transition">懶惰標記 (Lazy)</button>
+                <button onclick="scrollToSection('code')" class="hover:text-blue-400 transition">C++ 程式碼模板</button>
+                <button onclick="scrollToSection('references')" class="hover:text-blue-400 transition">參考來源</button>
+            </nav>
+        </div>
+    </header>
+
+    <!-- Main Content Container -->
+    <main class="flex-grow max-w-7xl w-full mx-auto p-4 md:p-6 space-y-8">
+
+        <!-- 1. Concept Section -->
+        <section id="concept" class="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+            <h2 class="text-2xl font-bold text-slate-900 border-b pb-3 mb-4 flex items-center gap-2">
+                <i class="fa-solid fa-book-open text-blue-600"></i> 什麼是線段樹？
+            </h2>
+            <div class="grid md:grid-cols-2 gap-6 leading-relaxed">
+                <div class="space-y-3">
+                    <p class="text-slate-700">
+                        <strong class="text-blue-600">線段樹 (Segment Tree)</strong> 是一種儲存「區間」資訊的二元樹資料結構。當遇到需要頻繁進行<strong>區間查詢</strong>（如區間和、區間最大/最小值）與<strong>單點/區間修改</strong>時，線段樹能將複雜度降低至 <span class="katex-expr">\mathcal{O}(\log N)</span>。
+                    </p>
+                    <ul class="list-disc pl-5 text-slate-600 space-y-1">
+                        <li><strong>根節點：</strong> 代表整個區間 $[0, N-1]$。</li>
+                        <li><strong>葉子節點：</strong> 代表單一元素 $[i, i]$。</li>
+                        <li><strong>內部節點：</strong> 代表左子樹與右子樹合起來的區間。</li>
+                    </ul>
+                    <div class="bg-blue-50 border-l-4 border-blue-500 p-3 rounded text-sm text-blue-900">
+                        <i class="fa-solid fa-lightbulb text-yellow-500 mr-1"></i>
+                        <strong>空間複雜度：</strong> 若陣列大小為 $N$，建議配置 <strong>$4N$</strong> 的空間以確保不會溢位。
+                    </div>
+                </div>
+                <div class="bg-slate-50 p-4 rounded-lg border border-slate-200 space-y-3">
+                    <h3 class="font-semibold text-slate-800">常見操作時間複雜度比較：</h3>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-sm text-left border-collapse">
+                            <thead>
+                                <tr class="bg-slate-200 text-slate-700">
+                                    <th class="p-2 border">操作項目</th>
+                                    <th class="p-2 border">暴力法 / 前綴和</th>
+                                    <th class="p-2 border">線段樹 (Segment Tree)</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr class="bg-white border-b">
+                                    <td class="p-2 border font-medium">單點修改</td>
+                                    <td class="p-2 border text-red-600 font-medium">$\mathcal{O}(1)$ / $\mathcal{O}(N)$</td>
+                                    <td class="p-2 border text-green-600 font-bold">$\mathcal{O}(\log N)$</td>
+                                </tr>
+                                <tr class="bg-white border-b">
+                                    <td class="p-2 border font-medium">區間查詢</td>
+                                    <td class="p-2 border text-red-600 font-medium">$\mathcal{O}(N)$ / $\mathcal{O}(1)$</td>
+                                    <td class="p-2 border text-green-600 font-bold">$\mathcal{O}(\log N)$</td>
+                                </tr>
+                                <tr class="bg-white">
+                                    <td class="p-2 border font-medium">區間修改 (含 Lazy)</td>
+                                    <td class="p-2 border text-red-600 font-medium">$\mathcal{O}(N)$</td>
+                                    <td class="p-2 border text-green-600 font-bold">$\mathcal{O}(\log N)$</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 2. Visualizer Control Panel & Canvas -->
+        <section id="visualizer" class="bg-white rounded-xl shadow-sm border border-slate-200 p-6 space-y-6">
+            <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b pb-4">
+                <div>
+                    <h2 class="text-2xl font-bold text-slate-900 flex items-center gap-2">
+                        <i class="fa-solid fa-chart-tree text-blue-600"></i> 互動樹狀視覺化
+                    </h2>
+                    <p class="text-sm text-slate-500 mt-1">輸入自訂陣列，隨時觀察線段樹結構與區間劃分。</p>
+                </div>
+
+                <!-- Aggregate Mode Selection -->
+                <div class="flex items-center space-x-2 bg-slate-100 p-1.5 rounded-lg text-sm">
+                    <span class="font-medium text-slate-700 px-2">維護功能:</span>
+                    <label class="cursor-pointer px-3 py-1 rounded-md transition" id="mode-sum-label">
+                        <input type="radio" name="treeMode" value="sum" checked onchange="changeTreeMode()" class="hidden"> 區間和 (Sum)
+                    </label>
+                    <label class="cursor-pointer px-3 py-1 rounded-md transition text-slate-600" id="mode-max-label">
+                        <input type="radio" name="treeMode" value="max" onchange="changeTreeMode()" class="hidden"> 最大值 (Max)
+                    </label>
+                    <label class="cursor-pointer px-3 py-1 rounded-md transition text-slate-600" id="mode-min-label">
+                        <input type="radio" name="treeMode" value="min" onchange="changeTreeMode()" class="hidden"> 最小值 (Min)
+                    </label>
+                </div>
+            </div>
+
+            <!-- Input Controls -->
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div class="sm:col-span-2">
+                    <label class="block text-sm font-medium text-slate-700 mb-1">陣列內容（以點開或半形逗點分隔，大小 2 ~ 12）:</label>
+                    <div class="flex gap-2">
+                        <input type="text" id="arrayInput" value="2, 5, 1, 4, 9, 3" 
+                               class="flex-grow border border-slate-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                        <button onclick="buildCustomTree()" class="bg-blue-600 hover:bg-blue-700 text-white font-medium px-4 py-2 rounded-lg transition flex items-center gap-2">
+                            <i class="fa-solid fa-rotate-right"></i> 建樹
+                        </button>
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1">快速隨機產生:</label>
+                    <button onclick="generateRandomArray()" class="w-full bg-slate-200 hover:bg-slate-300 text-slate-800 font-medium py-2 px-4 rounded-lg transition flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-dice"></i> 隨機生成 8 個數字
+                    </button>
+                </div>
+            </div>
+
+            <!-- SVG Container for Tree Rendering -->
+            <div class="relative bg-slate-900 rounded-xl overflow-hidden shadow-inner border border-slate-800" style="min-height: 420px;">
+                <div class="absolute top-3 left-3 bg-slate-800/80 backdrop-blur text-xs text-slate-300 p-2 rounded border border-slate-700 space-y-1">
+                    <div><span class="inline-block w-3 h-3 rounded-full bg-blue-500 mr-1"></span> 藍色: 預設節點</div>
+                    <div><span class="inline-block w-3 h-3 rounded-full bg-emerald-500 mr-1"></span> 綠色: 完全涵蓋 (Query Hit)</div>
+                    <div><span class="inline-block w-3 h-3 rounded-full bg-amber-500 mr-1"></span> 黃色: 部分相交 (Partial Hit)</div>
+                    <div><span class="inline-block w-3 h-3 rounded-full bg-red-500 mr-1"></span> 紅色: 修改中/焦點節點</div>
+                </div>
+                <div id="tree-svg-container" class="w-full h-full flex justify-center items-center">
+                    <!-- D3 Tree goes here -->
+                </div>
+            </div>
+        </section>
+
+        <!-- 3. Dynamic Operations & Animation Control -->
+        <section id="operations" class="bg-white rounded-xl shadow-sm border border-slate-200 p-6 space-y-6">
+            <h2 class="text-2xl font-bold text-slate-900 border-b pb-3 flex items-center gap-2">
+                <i class="fa-solid fa-play text-blue-600"></i> 動態模擬與逐步演練
+            </h2>
+
+            <div class="grid md:grid-cols-2 gap-6">
+                <!-- Query Operation -->
+                <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-3">
+                    <h3 class="text-lg font-bold text-slate-800 flex items-center gap-2">
+                        <i class="fa-solid fa-magnifying-glass text-blue-600"></i> 區間查詢 (Range Query)
+                    </h3>
+                    <p class="text-xs text-slate-500">尋找索引區間 $[L, R]$ 內的目標數值。</p>
+                    <div class="flex items-center gap-2">
+                        <span class="text-sm font-medium">區間 L:</span>
+                        <input type="number" id="queryL" value="1" min="0" class="w-16 border rounded p-1 text-center">
+                        <span class="text-sm font-medium">~ R:</span>
+                        <input type="number" id="queryR" value="4" min="0" class="w-16 border rounded p-1 text-center">
+                        <button onclick="startQueryAnimation()" class="bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-4 py-1.5 rounded transition">
+                            執行查詢
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Single Update Operation -->
+                <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-3">
+                    <h3 class="text-lg font-bold text-slate-800 flex items-center gap-2">
+                        <i class="fa-solid fa-pen-to-square text-emerald-600"></i> 單點修改 (Point Update)
+                    </h3>
+                    <p class="text-xs text-slate-500">更新索引 `idx` 的數值為 `val`。</p>
+                    <div class="flex items-center gap-2">
+                        <span class="text-sm font-medium">索引 idx:</span>
+                        <input type="number" id="updateIdx" value="2" min="0" class="w-16 border rounded p-1 text-center">
+                        <span class="text-sm font-medium">新值 val:</span>
+                        <input type="number" id="updateVal" value="10" class="w-16 border rounded p-1 text-center">
+                        <button onclick="startPointUpdateAnimation()" class="bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium px-4 py-1.5 rounded transition">
+                            執行修改
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Step Control & Console Output -->
+            <div class="bg-slate-900 text-slate-200 rounded-xl p-4 space-y-3">
+                <div class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-700 pb-2">
+                    <div class="flex items-center space-x-2">
+                        <button onclick="prevStep()" class="bg-slate-700 hover:bg-slate-600 text-white px-3 py-1 rounded text-sm"><i class="fa-solid fa-backward"></i> 上一步</button>
+                        <button onclick="togglePlay()" id="playBtn" class="bg-blue-600 hover:bg-blue-500 text-white px-4 py-1 rounded text-sm font-medium"><i class="fa-solid fa-play"></i> 播放</button>
+                        <button onclick="nextStep()" class="bg-slate-700 hover:bg-slate-600 text-white px-3 py-1 rounded text-sm">下一步 <i class="fa-solid fa-forward"></i></button>
+                    </div>
+                    <div class="text-sm text-slate-400">
+                        進度: <span id="stepCounter" class="text-white font-bold">0 / 0</span>
+                    </div>
+                </div>
+                <div id="statusMessage" class="text-sm text-blue-300 font-mono min-h-[40px] flex items-center">
+                    請點擊「執行查詢」或「執行修改」以開始記錄動畫步驟。
+                </div>
+            </div>
+        </section>
+
+        <!-- 4. Lazy Propagation Section -->
+        <section id="lazy" class="bg-white rounded-xl shadow-sm border border-slate-200 p-6 space-y-4">
+            <h2 class="text-2xl font-bold text-slate-900 border-b pb-3 flex items-center gap-2">
+                <i class="fa-solid fa-clock text-amber-500"></i> 進階技術：懶惰標記 (Lazy Propagation)
+            </h2>
+            <div class="space-y-3 text-slate-700 leading-relaxed">
+                <p>
+                    當我們需要進行<strong>區間修改（Range Update）</strong>時（例如：將區間 $[L, R]$ 內的所有數字都加上 $v$），若對每一個葉子節點逐一修改，複雜度會退化至 $\mathcal{O}(N \log N)$。
+                </p>
+                <div class="grid md:grid-cols-2 gap-4 my-2">
+                    <div class="bg-amber-50 border border-amber-200 rounded-lg p-4">
+                        <h4 class="font-bold text-amber-900 mb-1"><i class="fa-solid fa-circle-pause"></i> 核心精神：「先記著，用到再更新」</h4>
+                        <p class="text-sm text-amber-800">
+                            當查詢區間<strong>完全涵蓋</strong>當前節點代表的區間時，直接修改該節點的值，並在該節點打上一個 <code>lazy</code> 標記，然後立刻返回！不繼續向下遞迴。
+                        </p>
+                    </div>
+                    <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                        <h4 class="font-bold text-blue-900 mb-1"><i class="fa-solid fa-angles-down"></i> 下放標記 (Push Down)</h4>
+                        <p class="text-sm text-blue-800">
+                            當之後的查詢或修改操作「不得不存取」該節點的子節點時，才順便把 <code>lazy</code> 標記傳給左右子節點，並清除當前節點的標記。
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 5. C++ Code Reference Section -->
+        <section id="code" class="bg-white rounded-xl shadow-sm border border-slate-200 p-6 space-y-4">
+            <h2 class="text-2xl font-bold text-slate-900 border-b pb-3 flex items-center gap-2">
+                <i class="fa-solid fa-code text-blue-600"></i> C++ 實作範例程式碼
+            </h2>
+            <p class="text-sm text-slate-600">
+                這是最經典的點修改、區間和查詢線段樹範例，採用 <code>1-based</code> 索引進行陣列實作（左子節點為 <code>2*p</code>，右子節點為 <code>2*p+1</code>）。
+            </p>
+            <div class="relative">
+                <pre><code class="language-cpp rounded-xl">#include &lt;iostream&gt;
+#include &lt;vector&gt;
+
+using namespace std;
+
+const int MAXN = 100005;
+vector&lt;long long&gt; tree(4 * MAXN);
+vector&lt;long long&gt; arr(MAXN);
+
+// 建樹 (Build)
+void build(int node, int l, int r) {
+    if (l == r) {
+        tree[node] = arr[l];
+        return;
+    }
+    int mid = (l + r) / 2;
+    build(2 * node, l, mid);          // 左子樹
+    build(2 * node + 1, mid + 1, r);  // 右子樹
+    tree[node] = tree[2 * node] + tree[2 * node + 1]; // PullUp
+}
+
+// 單點修改 (Point Update): 將 index qx 的值改為 val
+void update(int node, int l, int r, int qx, long long val) {
+    if (l == r) {
+        tree[node] = val;
+        return;
+    }
+    int mid = (l + r) / 2;
+    if (qx &lt;= mid)
+        update(2 * node, l, mid, qx, val);
+    else
+        update(2 * node + 1, mid + 1, r, qx, val);
+    tree[node] = tree[2 * node] + tree[2 * node + 1]; // 重新更新父節點
+}
+
+// 區間查詢 (Range Query): 查詢 [ql, qr] 的區間和
+long long query(int node, int l, int r, int ql, int qr) {
+    if (ql &lt;= l &amp;&amp; r &lt;= qr) { // 完全涵蓋
+        return tree[node];
+    }
+    int mid = (l + r) / 2;
+    long long sum = 0;
+    if (ql &lt;= mid)
+        sum += query(2 * node, l, mid, ql, qr);
+    if (qr &gt; mid)
+        sum += query(2 * node + 1, mid + 1, r, ql, qr);
+    return sum;
+}
+
+int main() {
+    int n = 6;
+    vector&lt;int&gt; input = {2, 5, 1, 4, 9, 3};
+    for (int i = 0; i &lt; n; i++) arr[i + 1] = input[i];
+
+    build(1, 1, n);
+
+    cout &lt;&lt; "區間 [2, 5] 的和: " &lt;&lt; query(1, 1, n, 2, 5) &lt;&lt; endl; // 5+1+4+9 = 19
+    update(1, 1, n, 3, 10); // 將索引 3 的值改為 10
+    cout &lt;&lt; "修改後區間 [2, 5] 的和: " &lt;&lt; query(1, 1, n, 2, 5) &lt;&lt; endl; // 5+10+4+9 = 28
+
+    return 0;
+}</code></pre>
+            </div>
+        </section>
+
+        <!-- 6. References & Credits Section -->
+        <section id="references" class="bg-white rounded-xl shadow-sm border border-slate-200 p-6 space-y-4">
+            <h2 class="text-2xl font-bold text-slate-900 border-b pb-3 flex items-center gap-2">
+                <i class="fa-solid fa-bookmark text-blue-600"></i> 參考資料來源與致謝
+            </h2>
+            <p class="text-sm text-slate-600">
+                本教學平台之觀念整理與演算法邏輯架構參考並整合了以下優質的程式競賽 (CP) 教學資源：
+            </p>
+            <ul class="list-disc pl-5 space-y-2 text-sm text-slate-700">
+                <li>
+                    <strong class="text-slate-900">WiwiHo 的競程筆記：</strong>
+                    <a href="https://hackmd.io/@wiwiho/cp-note/%2F%40wiwiho%2FCPN-segment-tree" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:underline font-medium inline-flex items-center gap-1">
+                        線段樹 (Segment Tree) 概念與實作 <i class="fa-solid fa-arrow-up-right-from-square text-xs"></i>
+                    </a>
+                </li>
+                <li>
+                    <strong class="text-slate-900">Yui Huang 演算法圖解：</strong>
+                    <a href="https://yuihuang.com/segment-tree/" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:underline font-medium inline-flex items-center gap-1">
+                        線段樹 Segment Tree 詳細教學與圖解 <i class="fa-solid fa-arrow-up-right-from-square text-xs"></i>
+                    </a>
+                </li>
+            </ul>
+        </section>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-slate-900 text-slate-400 text-center py-4 text-sm mt-8 border-t border-slate-800">
+        <p>線段樹互動教學平台 | 適合演算法與競賽程式設計 (CP) 教學</p>
+    </footer>
+
+    <!-- JavaScript Application Logic -->
+    <script>
+        // Global States
+        let arrayData = [2, 5, 1, 4, 9, 3];
+        let treeMode = 'sum'; // 'sum', 'max', 'min'
+        let treeDataRaw = [];
+        let treeHierarchy = null;
+        let animationSteps = [];
+        let currentStepIdx = -1;
+        let isPlaying = false;
+        let playInterval = null;
+
+        // On Page Load
+        window.onload = function() {
+            renderMathInElement(document.body, {
+                delimiters: [
+                    {left: '$$', right: '$$', display: true},
+                    {left: '$', right: '$', display: false}
+                ]
+            });
+            hljs.highlightAll();
+            buildCustomTree();
+            updateModeStyle();
+        };
+
+        function scrollToSection(id) {
+            document.getElementById(id).scrollIntoView({ behavior: 'smooth' });
+        }
+
+        function updateModeStyle() {
+            const sumL = document.getElementById('mode-sum-label');
+            const maxL = document.getElementById('mode-max-label');
+            const minL = document.getElementById('mode-min-label');
+            
+            [sumL, maxL, minL].forEach(l => {
+                l.classList.remove('bg-blue-600', 'text-white');
+                l.classList.add('text-slate-600');
+            });
+
+            if (treeMode === 'sum') {
+                sumL.classList.add('bg-blue-600', 'text-white');
+            } else if (treeMode === 'max') {
+                maxL.classList.add('bg-blue-600', 'text-white');
+            } else {
+                minL.classList.add('bg-blue-600', 'text-white');
+            }
+        }
+
+        function changeTreeMode() {
+            const selected = document.querySelector('input[name="treeMode"]:checked').value;
+            treeMode = selected;
+            updateModeStyle();
+            buildCustomTree();
+        }
+
+        function generateRandomArray() {
+            const arr = [];
+            for (let i = 0; i < 8; i++) {
+                arr.push(Math.floor(Math.random() * 20) + 1);
+            }
+            document.getElementById('arrayInput').value = arr.join(', ');
+            buildCustomTree();
+        }
+
+        function parseInput() {
+            const str = document.getElementById('arrayInput').value;
+            const parts = str.split(/[, ]+/).filter(x => x.length > 0);
+            const nums = parts.map(x => parseInt(x, 10)).filter(x => !isNaN(x));
+            if (nums.length < 2) {
+                alert("請至少輸入 2 個數字");
+                return null;
+            }
+            if (nums.length > 12) {
+                alert("為了最佳視覺呈現，請限制在 12 個數字以內");
+                return null;
+            }
+            return nums;
+        }
+
+        function buildCustomTree() {
+            const parsed = parseInput();
+            if (!parsed) return;
+            arrayData = parsed;
+
+            // Reset Animation
+            stopAnimation();
+            animationSteps = [];
+            currentStepIdx = -1;
+            updateStatus("樹狀結構已更新。可以點擊下方選單執行查詢或修改。");
+
+            // Build Tree Object Hierarchy for D3
+            treeHierarchy = buildSegmentTreeStructure(arrayData, 0, arrayData.length - 1, 1);
+            renderD3Tree(treeHierarchy);
+        }
+
+        // Combine logic based on mode
+        function combineValues(a, b) {
+            if (treeMode === 'sum') return a + b;
+            if (treeMode === 'max') return Math.max(a, b);
+            if (treeMode === 'min') return Math.min(a, b);
+            return a + b;
+        }
+
+        function buildSegmentTreeStructure(arr, l, r, nodeId) {
+            if (l === r) {
+                return {
+                    id: nodeId,
+                    l: l,
+                    r: r,
+                    val: arr[l],
+                    name: `[${l}] = ${arr[l]}`,
+                    children: []
+                };
+            }
+            const mid = Math.floor((l + r) / 2);
+            const leftChild = buildSegmentTreeStructure(arr, l, mid, nodeId * 2);
+            const rightChild = buildSegmentTreeStructure(arr, mid + 1, r, nodeId * 2 + 1);
+            const val = combineValues(leftChild.val, rightChild.val);
+
+            return {
+                id: nodeId,
+                l: l,
+                r: r,
+                val: val,
+                name: `[${l}..${r}] : ${val}`,
+                children: [leftChild, rightChild]
+            };
+        }
+
+        // D3 Tree Visualizer
+        function renderD3Tree(data) {
+            const container = document.getElementById('tree-svg-container');
+            container.innerHTML = ''; // Clear previous
+
+            const width = container.clientWidth || 800;
+            const height = 420;
+            const margin = { top: 40, right: 20, bottom: 40, left: 20 };
+
+            const svg = d3.select('#tree-svg-container')
+                .append('svg')
+                .attr('width', '100%')
+                .attr('height', height)
+                .attr('viewBox', `0 0 ${width} ${height}`)
+                .append('g')
+                .attr('transform', `translate(0, ${margin.top})`);
+
+            const root = d3.hierarchy(data);
+            const treeLayout = d3.tree().size([width - margin.left - margin.right, height - margin.top - margin.bottom]);
+            treeLayout(root);
+
+            // Links
+            svg.selectAll('.link')
+                .data(root.links())
+                .enter()
+                .append('path')
+                .attr('class', 'link')
+                .attr('id', d => `link-${d.target.data.id}`)
+                .attr('d', d3.linkVertical()
+                    .x(d => d.x + margin.left)
+                    .y(d => d.y)
+                );
+
+            // Nodes
+            const node = svg.selectAll('.node')
+                .data(root.descendants())
+                .enter()
+                .append('g')
+                .attr('class', 'node')
+                .attr('id', d => `node-${d.data.id}`)
+                .attr('transform', d => `translate(${d.x + margin.left},${d.y})`);
+
+            node.append('circle')
+                .attr('r', 22);
+
+            node.append('text')
+                .attr('dy', '-0.2em')
+                .attr('text-anchor', 'middle')
+                .attr('fill', '#0f172a')
+                .text(d => d.data.val);
+
+            node.append('text')
+                .attr('dy', '1.4em')
+                .attr('text-anchor', 'middle')
+                .attr('fill', '#475569')
+                .attr('font-size', '10px')
+                .text(d => `[${d.data.l}..${d.data.r}]`);
+        }
+
+        // ================= Animation Step Builder =================
+        function startQueryAnimation() {
+            const ql = parseInt(document.getElementById('queryL').value, 10);
+            const qr = parseInt(document.getElementById('queryR').value, 10);
+
+            if (isNaN(ql) || isNaN(qr) || ql < 0 || qr >= arrayData.length || ql > qr) {
+                alert(`請輸入有效的查詢區間 0 <= L <= R < ${arrayData.length}`);
+                return;
+            }
+
+            stopAnimation();
+            animationSteps = [];
+
+            // Run Query Algorithm to log steps
+            queryDFS(treeHierarchy, ql, qr);
+
+            currentStepIdx = 0;
+            applyStep(0);
+        }
+
+        function queryDFS(node, ql, qr) {
+            // Visit current node
+            animationSteps.push({
+                nodeId: node.id,
+                type: 'visit',
+                msg: `檢查節點 [${node.l}..${node.r}]，查詢區間為 [${ql}..${qr}]`
+            });
+
+            if (ql <= node.l && node.r <= qr) {
+                // Completely Inside
+                animationSteps.push({
+                    nodeId: node.id,
+                    type: 'active',
+                    msg: `節點 [${node.l}..${node.r}] 完全包含於查詢區間內！回傳數值：${node.val}`
+                });
+                return node.val;
+            }
+
+            animationSteps.push({
+                nodeId: node.id,
+                type: 'partial',
+                msg: `節點 [${node.l}..${node.r}] 僅部分重疊，繼續往左右子樹搜尋...`
+            });
+
+            const mid = Math.floor((node.l + node.r) / 2);
+            let res = (treeMode === 'sum') ? 0 : (treeMode === 'max' ? -Infinity : Infinity);
+
+            if (ql <= mid) {
+                res = queryDFS(node.children[0], ql, qr);
+            }
+            if (qr > mid) {
+                const rightRes = queryDFS(node.children[1], ql, qr);
+                if (treeMode === 'sum') res += rightRes;
+                else if (treeMode === 'max') res = Math.max(res, rightRes);
+                else if (treeMode === 'min') res = Math.min(res, rightRes);
+            }
+
+            animationSteps.push({
+                nodeId: node.id,
+                type: 'partial-done',
+                msg: `節點 [${node.l}..${node.r}] 合併計算結果為：${res}`
+            });
+
+            return res;
+        }
+
+        function startPointUpdateAnimation() {
+            const idx = parseInt(document.getElementById('updateIdx').value, 10);
+            const val = parseInt(document.getElementById('updateVal').value, 10);
+
+            if (isNaN(idx) || isNaN(val) || idx < 0 || idx >= arrayData.length) {
+                alert(`請輸入有效的索引 0 <= idx < ${arrayData.length}`);
+                return;
+            }
+
+            stopAnimation();
+            animationSteps = [];
+
+            // Run Update Algorithm to log steps
+            updateDFS(treeHierarchy, idx, val);
+
+            // Re-render whole tree to reflect backend update
+            arrayData[idx] = val;
+            treeHierarchy = buildSegmentTreeStructure(arrayData, 0, arrayData.length - 1, 1);
+            
+            currentStepIdx = 0;
+            applyStep(0);
+        }
+
+        function updateDFS(node, idx, newVal) {
+            animationSteps.push({
+                nodeId: node.id,
+                type: 'visit',
+                msg: `準備修改索引 ${idx}，進入節點 [${node.l}..${node.r}]`
+            });
+
+            if (node.l === node.r) {
+                const oldVal = node.val;
+                animationSteps.push({
+                    nodeId: node.id,
+                    type: 'update-leaf',
+                    newVal: newVal,
+                    msg: `找到葉子節點 [${node.l}]，將數值由 ${oldVal} 更新為 ${newVal}`
+                });
+                return;
+            }
+
+            const mid = Math.floor((node.l + node.r) / 2);
+            if (idx <= mid) {
+                updateDFS(node.children[0], idx, newVal);
+            } else {
+                updateDFS(node.children[1], idx, newVal);
+            }
+
+            animationSteps.push({
+                nodeId: node.id,
+                type: 'update-pullup',
+                msg: `子樹更新完畢，重新計算節點 [${node.l}..${node.r}] 的值`
+            });
+        }
+
+        // Apply specific step UI highlights
+        function applyStep(stepIdx) {
+            if (stepIdx < 0 || stepIdx >= animationSteps.length) return;
+
+            const step = animationSteps[stepIdx];
+            updateStatus(`[步驟 ${stepIdx + 1}/${animationSteps.length}] ${step.msg}`);
+
+            // Reset node highlights
+            d3.selectAll('.node').classed('node--highlight node--active node--partial', false);
+
+            const targetNode = d3.select(`#node-${step.nodeId}`);
+
+            if (step.type === 'visit') {
+                targetNode.classed('node--highlight', true);
+            } else if (step.type === 'active') {
+                targetNode.classed('node--active', true);
+            } else if (step.type === 'partial' || step.type === 'partial-done') {
+                targetNode.classed('node--partial', true);
+            } else if (step.type === 'update-leaf') {
+                targetNode.classed('node--highlight', true);
+                targetNode.select('text').text(step.newVal);
+            } else if (step.type === 'update-pullup') {
+                targetNode.classed('node--highlight', true);
+                // Re-render updated values
+                renderD3Tree(treeHierarchy);
+                d3.select(`#node-${step.nodeId}`).classed('node--highlight', true);
+            }
+
+            document.getElementById('stepCounter').innerText = `${stepIdx + 1} / ${animationSteps.length}`;
+        }
+
+        function nextStep() {
+            if (currentStepIdx < animationSteps.length - 1) {
+                currentStepIdx++;
+                applyStep(currentStepIdx);
+            } else {
+                stopAnimation();
+            }
+        }
+
+        function prevStep() {
+            if (currentStepIdx > 0) {
+                currentStepIdx--;
+                applyStep(currentStepIdx);
+            }
+        }
+
+        function togglePlay() {
+            if (isPlaying) {
+                stopAnimation();
+            } else {
+                if (animationSteps.length === 0) return;
+                isPlaying = true;
+                document.getElementById('playBtn').innerHTML = `<i class="fa-solid fa-pause"></i> 暫停`;
+                playInterval = setInterval(() => {
+                    if (currentStepIdx < animationSteps.length - 1) {
+                        nextStep();
+                    } else {
+                        stopAnimation();
+                    }
+                }, 1200);
+            }
+        }
+
+        function stopAnimation() {
+            isPlaying = false;
+            if (playInterval) clearInterval(playInterval);
+            document.getElementById('playBtn').innerHTML = `<i class="fa-solid fa-play"></i> 播放`;
+        }
+
+        function updateStatus(msg) {
+            document.getElementById('statusMessage').innerText = msg;
+        }
+    </script>
+</body>
+</html>
